@@ -1,0 +1,166 @@
+
+pragma solidity >=0.4.0 < 0.7.0;
+
+contract LucidVendor {
+    
+    // create fields for Vendor entry
+    struct NewVendor {
+        string vendorName;
+        uint status;
+        uint industry;
+        bool isExisting;
+        uint dateAdded;
+        uint completedProjects;
+    }
+    
+    //constructor; not sure this is the right place to do it
+    constructor() public {
+        initialize();
+    }
+    
+    //dict of status fields; ?? does this need to be in the chain??
+    mapping (uint => string) public statusCodes;
+
+    //func to add status codes 
+    function addStatusCode(uint _statusCode, string _statusDesc) public {
+
+        //first check if code already exists
+        require(bytes(statusCodes[_statusCode]).length == 0, "Status Code already exists.");
+        
+        //add status Code
+        statusCodes[_statusCode] = _statusDesc;
+        
+    } 
+
+    //dict of industry; ?? does this need to be in the chain??
+    mapping (uint => string) public industryCodes;
+
+    //func to add industryCodes 
+    function addIndustryCode(uint _industryCode, string _industryDesc) public {
+
+        //first check if code already exists
+        require(bytes(industryCodes[_industryCode]).length == 0, "Industry Code already exists.");
+        
+        //add status Code
+        industryCodes[_industryCode] = _industryDesc;
+    } 
+
+    //initialize default values
+    function initialize() private {
+        //status codes
+        statusCodes[1] = "1: Under review";
+        statusCodes[2] = "2: Active";
+        statusCodes[3] = "3: Blacklisted";
+        
+        //industry codes
+        industryCodes[1] = "1: Office Supplies";
+        industryCodes[2] = "2: Services";
+        industryCodes[3] = "3: IT Consultancy";
+    }
+
+
+
+    // dict/mapping of vendors
+    mapping (bytes32 => NewVendor) private VendorDB;
+    
+    // function to add new vendor
+    /* test
+    _vendorName: "Rebar Solutions, Inc."
+    _status: 2 
+    _industry: 3
+    _completedProjects: 3
+    */
+    function addNewVendor(string _vendorName, uint _status, uint _industry, uint _completedProjects) public {
+        /* we use the hashed _vendorName as the key to the mapping, so this has to be unique;
+        hash will change depending on how value was encoded, hence, need to ensure consistency
+        when inputting; solidity cannot manipulate strings, so suggestion is that _vendorName
+        be trimmed and converted to lowercase somwhere in front- or mid-end before calling the
+        function */
+
+        //convert _vendorName to hash
+        bytes32 _hash;
+        _hash = keccak256(abi.encode(_vendorName));
+        
+        //check if entry already exists
+        require(!VendorDB[_hash].isExisting, "Vendor already exists.");
+        
+        //first check if status/industry code  exists
+        require(bytes(statusCodes[_status]).length != 0 && bytes(industryCodes[_industry]).length != 0, "Status and/or Industry Codes do not exist.");
+
+        //add in the details
+        VendorDB[_hash].vendorName = _vendorName;
+        VendorDB[_hash].status = _status;        
+        VendorDB[_hash].industry = _industry;
+        VendorDB[_hash].completedProjects = _completedProjects;
+        VendorDB[_hash].isExisting = true;        
+        VendorDB[_hash].dateAdded = now;        
+
+    }
+    
+    //update Vendor details
+    function updateStatus(string _vendorName, uint _status, string _comments) public {
+        //note: comments only for audit trail, not visible to public 
+        
+        //convert _vendorName to hash
+        bytes32 _hash;
+        _hash = keccak256(abi.encode(_vendorName));
+        
+        //check if entry already exists
+        require(VendorDB[_hash].isExisting, "Vendor does not exist.");
+
+        //first check if status/industry code  exists
+        require(bytes(statusCodes[_status]).length != 0, "Status Code does not exist.");
+        
+        //add in the details
+        VendorDB[_hash].status = _status;        
+    }
+
+    function updateIndustry(string _vendorName, uint _industry, string _comments) public {
+        //note: comments only for audit trail, not visible to public 
+        
+        //convert _vendorName to hash
+        bytes32 _hash;
+        _hash = keccak256(abi.encode(_vendorName));
+        
+        //check if entry already exists
+        require(VendorDB[_hash].isExisting, "Vendor does not exist.");
+
+        //first check if status/industry code  exists
+        require(bytes(industryCodes[_industry]).length != 0, "Industry Code does not exist.");
+
+        //add in the details
+        VendorDB[_hash].industry = _industry;        
+    }
+    
+    function updateCompletedProjects(string _vendorName, uint _completedProjects) public {
+        //note: comments only for audit trail, not visible to public 
+        
+        //convert _vendorName to hash
+        bytes32 _hash;
+        _hash = keccak256(abi.encode(_vendorName));
+        
+        //check if entry already exists
+        require(VendorDB[_hash].isExisting, "Vendor does not exist.");
+
+        //add in the details
+        VendorDB[_hash].completedProjects = _completedProjects;        
+    }
+
+    //getter/check vendor details
+    function checkVendor(string _vendorName) public view returns(string, string, string, uint, uint) {
+        
+        //hash _vendorName
+        bytes32 _hash;
+        _hash = keccak256(abi.encode(_vendorName));
+
+        //check if vendor is already existing
+        require(VendorDB[_hash].isExisting, "Vendor does not exist.");
+        
+        return(VendorDB[_hash].vendorName, statusCodes[VendorDB[_hash].status], industryCodes[VendorDB[_hash].industry], VendorDB[_hash].completedProjects, VendorDB[_hash].dateAdded);
+    }
+
+    
+
+    
+    
+}
